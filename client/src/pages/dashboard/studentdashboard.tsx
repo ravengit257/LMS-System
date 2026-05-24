@@ -26,10 +26,19 @@ interface Schedules {
   teacher_name: string;
 }
 
+interface Grade {
+  grade_id: number;
+  course_id: number;
+  grade: string;
+  course_title: string;
+  teacher_name: string;
+}
+
 export default function StudentDashboard({ user, onLogout }: any) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [schedules, setSchedules] = useState<Schedules[]>([]);
+  const [grades, setGrades] = useState<Grade[]>([]);
   const [message, setMessage] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("courses");
   const token = localStorage.getItem("token");
@@ -52,6 +61,17 @@ export default function StudentDashboard({ user, onLogout }: any) {
       });
       setSchedules(response.data);
     }catch(err) {
+      console.error(err);
+    }
+  }
+
+  const fetchGrades = async () => {
+    try{
+      const response = await axios.get("http://localhost:5000/mygrades", {
+        headers: {Authorization: `Bearer ${token}`},
+      });
+      setGrades(response.data);
+    }catch(err){
       console.error(err);
     }
   }
@@ -85,6 +105,7 @@ export default function StudentDashboard({ user, onLogout }: any) {
     fetchCourses();
     fetchEnrollments();
     fetchSchedules();
+    fetchGrades();
   }, []);
 
   const isEnrolled = (course_id: number) => {
@@ -95,6 +116,7 @@ export default function StudentDashboard({ user, onLogout }: any) {
     { key: "courses", label: "Semua Course" },
     { key: "mycourses", label: "Course Saya" },
     { key: "schedules", label: "Jadwal" },
+    { key: "grades", label: "Nilai" },
   ];
 
 return (
@@ -223,6 +245,42 @@ return (
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "grades" && (
+        <div>
+          <h2 className="text-xl font-bold text-white mb-6">Nilai Saya</h2>
+          {grades.length === 0 ? (
+            <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-8 text-center">
+              <p className="text-slate-400">Belum ada nilai</p>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-xl border border-slate-700/50">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-800/80">
+                    <th className="text-left px-6 py-3 text-slate-400 text-sm font-medium">Course</th>
+                    <th className="text-left px-6 py-3 text-slate-400 text-sm font-medium">Nilai</th>
+                    <th className="text-left px-6 py-3 text-slate-400 text-sm font-medium">Teacher</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-700/50">
+                  {grades.map((g) => (
+                    <tr key={g.grade_id} className="bg-slate-800/40 hover:bg-slate-800/60 transition">
+                      <td className="px-6 py-4 text-white text-sm font-medium">{g.course_title}</td>
+                      <td className="px-6 py-4">
+                        <span className="inline-block px-3 py-1 rounded-lg text-xs font-medium border bg-blue-500/10 text-blue-400 border-blue-500/30">
+                          {g.grade}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-slate-400 text-sm">{g.teacher_name}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

@@ -84,6 +84,19 @@ async function createTables() {
     `);
     console.log("Table schedules created");
 
+    //5. Tabel Nilai
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS grades (
+        grade_id    SERIAL PRIMARY KEY,
+        student_id  INTEGER REFERENCES accounts(user_id) ON DELETE CASCADE,
+        course_id   INTEGER REFERENCES courses(course_id) ON DELETE CASCADE,
+        grade       VARCHAR(5) NOT NULL,
+        created_at  TIMESTAMP DEFAULT NOW(),
+        UNIQUE(student_id, course_id)
+      )
+        `);
+      console.log("Tabel Nilai Created")
+
   } catch (err) {
     console.error(err);
   }

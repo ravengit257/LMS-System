@@ -289,6 +289,97 @@ app.delete('/schedules/:id', async (req, res) => {
 }
 )
 
+app.post('/grades', async (req, res) => {
+  const {student_id, course_id, grade} = req.body
+  const token = req.headers.authorization?.split(" ")[1];
+  try{
+    const decoded: any = jwt.verify(token!, process.env.JWTSECRET as string);
+    if(decoded.role != "teacher"){
+      res.status(403).json({ error: "Access Denied" });
+      return
+    }else{
+      await pool.query(`
+        INSERT INTO grades (student_id, course_id, grade) VALUES($1, $2, $3)`,
+        [student_id, course_id, grade]);res.json({message: "Nilai berhasil di input"})
+    }
+  }catch(err){
+    res.status(500).json({ error: "Server error" });
+  }
+})
+
+app.get('/grades/:course_id', async (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  try{
+    const decoded: any = jwt.verify(token!, process.env.JWTSECRET as string);
+    if(decoded.role != "teacher"){
+      res.status(403).json({ error: "Access Denied" });
+      return
+    }
+    const course = await pool.query(`SELECT teacher_id FROM courses WHERE course_id = $1`, [req.params.course_id]);
+    if(course.rows.length === 0 || course.rows[0].teacher_id !== decoded.user_id){
+      res.status(403).json({ error: "Bukan course anda" });
+      return
+    }
+    const result = await pool.query(`
+      SELECT g.grade_id, g.student_id, g.grade, a.username AS student_name
+      FROM grades g
+      JOIN accounts a ON g.student_id = a.user_id
+      WHERE g.course_id = $1
+    `, [req.params.course_id]);
+    res.json(result.rows)
+  }catch(err){
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+})
+
+app.get('/mygrades', async (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  try{
+    const decoded: any = jwt.verify(token!, process.env.JWTSECRET as string);
+    if(decoded.role != "student"){
+      res.status(403).json({ error: "Access Denied" });
+      return
+    }
+    const result = await pool.query(`
+      SELECT g.grade_id, g.grade, g.course_id, c.title AS course_title, a.username AS teacher_name
+      FROM grades g
+      JOIN courses c ON g.course_id = c.course_id
+      JOIN accounts a ON c.teacher_id = a.user_id
+      WHERE g.student_id = $1
+    `, [decoded.user_id]);
+    res.json(result.rows)
+  }catch(err){
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+})
+
+app.get('/enrolled-students/:course_id', async (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  try{
+    const decoded: any = jwt.verify(token!, process.env.JWTSECRET as string);
+    if(decoded.role != "teacher"){
+      res.status(403).json({ error: "Access Denied" });
+      return
+    }
+    const course = await pool.query(`SELECT teacher_id FROM courses WHERE course_id = $1`, [req.params.course_id]);
+    if(course.rows.length === 0 || course.rows[0].teacher_id !== decoded.user_id){
+      res.status(403).json({ error: "Bukan course anda" });
+      return
+    }
+    const result = await pool.query(`
+      SELECT a.user_id, a.username
+      FROM enrollments e
+      JOIN accounts a ON e.student_id = a.user_id
+      WHERE e.course_id = $1
+    `, [req.params.course_id]);
+    res.json(result.rows)
+  }catch(err){
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+})
 
 app.listen(5000, () => {
   console.log("Server running at http://localhost:5000");
