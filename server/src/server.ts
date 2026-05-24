@@ -71,7 +71,7 @@ app.post('/register', async (req, res) =>{
       `INSERT INTO accounts (username, password, role) VALUES ($1, $2, $3)`,
       [username, hashed, role || 'student']
     );
-    res.json('Registrasi Berhasil')
+    res.json({message: "Registrasi Berhasil"})
   }catch(err: any){
     if (err.code === '23505'){
       res.status(400).json({ message: "Username sudah dipakai" });
