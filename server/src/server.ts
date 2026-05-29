@@ -381,6 +381,72 @@ app.get('/enrolled-students/:course_id', async (req, res) => {
   }
 })
 
+app.post('/announcements', async (req, res) => {
+  const {course_id, title, content} = req.body
+  const token = req.headers.authorization?.split(" ")[1];
+  try{
+    const decoded: any = jwt.verify(token!, process.env.JWTSECRET as string);
+    if(decoded.role != "teacher"){
+      res.status(403).json({ error: "Access Denied" });
+      return
+    }
+    const course = await pool.query(`SELECT teacher_id FROM courses WHERE course_id = $1`, [course_id]);
+    if(course.rows.length === 0 || course.rows[0].teacher_id !== decoded.user_id){
+      res.status(403).json({ error: "Bukan course anda" });
+      return
+    }
+    await pool.query(`
+      INSERT INTO announcements (course_id, title, content) VALUES($1, $2, $3)`,
+      [course_id, title, content]);
+    res.json({message: "Pengumuman berhasil dibuat"})
+  }catch(err){
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+})
+
+app.get('/announcements/:course_id', async (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  try{
+    const decoded: any = jwt.verify(token!, process.env.JWTSECRET as string);
+    if(decoded.role != "teacher"){
+      res.status(403).json({ error: "Access Denied" });
+      return
+    }
+    const result = await pool.query(`
+      SELECT * FROM announcements WHERE course_id = $1 ORDER BY created_at DESC`,
+      [req.params.course_id]);
+    res.json(result.rows)
+  }catch(err){
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+})
+
+app.get('/myannouncements', async (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  try{
+    const decoded: any = jwt.verify(token!, process.env.JWTSECRET as string);
+    if(decoded.role != "student"){
+      res.status(403).json({ error: "Access Denied" });
+      return
+    }
+    const result = await pool.query(`
+      SELECT a.*, c.title AS course_title, ac.username AS teacher_name
+      FROM announcements a
+      JOIN courses c ON a.course_id = c.course_id
+      JOIN accounts ac ON c.teacher_id = ac.user_id
+      JOIN enrollments e ON a.course_id = e.course_id
+      WHERE e.student_id = $1
+      ORDER BY a.created_at DESC
+    `, [decoded.user_id]);
+    res.json(result.rows)
+  }catch(err){
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+})
+
 app.listen(5000, () => {
   console.log("Server running at http://localhost:5000");
 });

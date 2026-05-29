@@ -34,11 +34,22 @@ interface Grade {
   teacher_name: string;
 }
 
+interface Announcement {
+  announcement_id: number;
+  course_id: number;
+  title: string;
+  content: string;
+  created_at: string;
+  course_title: string;
+  teacher_name: string;
+}
+
 export default function StudentDashboard({ user, onLogout }: any) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [schedules, setSchedules] = useState<Schedules[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [message, setMessage] = useState<any>(null);
   const [activeTab, setActiveTab] = useState("courses");
   const token = localStorage.getItem("token");
@@ -61,6 +72,17 @@ export default function StudentDashboard({ user, onLogout }: any) {
       });
       setSchedules(response.data);
     }catch(err) {
+      console.error(err);
+    }
+  }
+
+  const fetchAnnouncements = async () => {
+    try{
+      const response = await axios.get("http://localhost:5000/myannouncements", {
+        headers: {Authorization: `Bearer ${token}`},
+      });
+      setAnnouncements(response.data);
+    }catch(err){
       console.error(err);
     }
   }
@@ -106,6 +128,7 @@ export default function StudentDashboard({ user, onLogout }: any) {
     fetchEnrollments();
     fetchSchedules();
     fetchGrades();
+    fetchAnnouncements();
   }, []);
 
   const isEnrolled = (course_id: number) => {
@@ -117,6 +140,7 @@ export default function StudentDashboard({ user, onLogout }: any) {
     { key: "mycourses", label: "Course Saya" },
     { key: "schedules", label: "Jadwal" },
     { key: "grades", label: "Nilai" },
+    { key: "announcements", label: "Pengumuman" },
   ];
 
 return (
@@ -281,6 +305,33 @@ return (
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === "announcements" && (
+        <div>
+          <h2 className="text-xl font-bold text-white mb-6">Pengumuman</h2>
+          {announcements.length === 0 ? (
+            <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-8 text-center">
+              <p className="text-slate-400">Belum ada pengumuman</p>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {announcements.map((a) => (
+                <div key={a.announcement_id} className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-6">
+                  <div className="flex items-start justify-between gap-4 mb-3">
+                    <h3 className="text-lg font-semibold text-white">{a.title}</h3>
+                    <span className="text-xs text-slate-500 whitespace-nowrap">{new Date(a.created_at).toLocaleDateString("id-ID")}</span>
+                  </div>
+                  <p className="text-slate-400 text-sm mb-3 whitespace-pre-wrap">{a.content}</p>
+                  <div className="flex items-center gap-4 text-xs text-slate-500">
+                    <span>{a.course_title}</span>
+                    <span>oleh {a.teacher_name}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

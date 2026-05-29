@@ -97,6 +97,18 @@ async function createTables() {
         `);
       console.log("Tabel Nilai Created")
 
+    //6. Tabel Pengumuman
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS announcements (
+        announcement_id SERIAL PRIMARY KEY,
+        course_id       INTEGER NOT NULL REFERENCES courses(course_id) ON DELETE CASCADE,
+        title           VARCHAR(200) NOT NULL,
+        content         TEXT NOT NULL,
+        created_at      TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    console.log("Tabel Pengumuman Created")
+
   } catch (err) {
     console.error(err);
   }

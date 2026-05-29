@@ -25,10 +25,17 @@ export default function TeacherDashboard({ user, onLogout }: any) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [message, setMessage] = useState("");
   const [activeTab, setActiveTab] = useState("create");
+
   const [selectedCourse, setSelectedCourse] = useState("");
   const [students, setStudents] = useState<Student[]>([]);
   const [grades, setGrades] = useState<GradeView[]>([]);
   const [gradeInputs, setGradeInputs] = useState<Record<number, string>>({});
+
+  const [announceTitle, setAnnounceTitle] = useState("");
+  const [announceContent, setAnnounceContent] = useState("");
+  const [announceCourse, setAnnounceCourse] = useState("");
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+
   const token = localStorage.getItem("token");
 
   const fetchMyCourses = async () => {
@@ -121,9 +128,40 @@ export default function TeacherDashboard({ user, onLogout }: any) {
     fetchMyCourses();
   }, []);
 
+  const fetchAnnouncements = async (course_id: string) => {
+    try{
+      const response = await axios.get(`http://localhost:5000/announcements/${course_id}`, {
+        headers: {Authorization: `Bearer ${token}`},
+      });
+      setAnnouncements(response.data);
+    }catch(err){
+      console.error(err);
+    }
+  }
+
+  const handleCreateAnnouncement = async () => {
+    if(!announceTitle || !announceContent || !announceCourse){
+      setMessage("Semua kolom harus diisi");
+      return;
+    }
+    try{
+      await axios.post("http://localhost:5000/announcements",
+        {course_id: Number(announceCourse), title: announceTitle, content: announceContent},
+        {headers: {Authorization: `Bearer ${token}`}},
+      );
+      setAnnounceTitle("");
+      setAnnounceContent("");
+      setMessage("Pengumuman berhasil dibuat");
+      fetchAnnouncements(announceCourse);
+    }catch(err: any){
+      setMessage(err.response?.data?.error || "Gagal membuat pengumuman");
+    }
+  }
+
   const tabs = [
     { key: "create", label: "Buat Course" },
     { key: "grades", label: "Input Nilai" },
+    { key: "announcements", label: "Pengumuman" },
     { key: "mycourses", label: "Course Saya" },
   ];
 
@@ -283,6 +321,76 @@ export default function TeacherDashboard({ user, onLogout }: any) {
                     )}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === "announcements" && (
+          <div>
+            <h2 className="text-xl font-bold text-white mb-6">Buat Pengumuman</h2>
+            <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-6 mb-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-slate-300 text-sm font-medium mb-1.5">Pilih Course</label>
+                  <select
+                    value={announceCourse}
+                    onChange={(e) => {setAnnounceCourse(e.target.value); if(e.target.value) fetchAnnouncements(e.target.value)}}
+                    className="w-full bg-slate-900/50 border border-slate-600/50 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition"
+                  >
+                    <option value="" className="bg-slate-900">-- Pilih Course --</option>
+                    {courses.map((c) => (
+                      <option key={c.course_id} value={c.course_id} className="bg-slate-900">{c.title}</option>
+                    ))}
+                  </select>
+                </div>
+                {announceCourse && (
+                  <>
+                    <div>
+                      <label className="block text-slate-300 text-sm font-medium mb-1.5">Judul Pengumuman</label>
+                      <input
+                        type="text"
+                        value={announceTitle}
+                        onChange={(e) => setAnnounceTitle(e.target.value)}
+                        placeholder="Judul pengumuman"
+                        className="w-full bg-slate-900/50 border border-slate-600/50 text-white rounded-xl px-4 py-2.5 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-slate-300 text-sm font-medium mb-1.5">Isi Pengumuman</label>
+                      <textarea
+                        value={announceContent}
+                        onChange={(e) => setAnnounceContent(e.target.value)}
+                        placeholder="Isi pengumuman"
+                        rows={4}
+                        className="w-full bg-slate-900/50 border border-slate-600/50 text-white rounded-xl px-4 py-2.5 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition resize-none"
+                      />
+                    </div>
+                    <button
+                      onClick={handleCreateAnnouncement}
+                      className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-semibold px-6 py-2.5 rounded-xl transition cursor-pointer shadow-lg shadow-blue-500/20"
+                    >
+                      Kirim Pengumuman
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {announceCourse && announcements.length > 0 && (
+              <div>
+                <h3 className="text-lg font-bold text-white mb-4">Riwayat Pengumuman</h3>
+                <div className="grid gap-4">
+                  {announcements.map((a: any) => (
+                    <div key={a.announcement_id} className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-6">
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <h4 className="text-white font-semibold">{a.title}</h4>
+                        <span className="text-xs text-slate-500 whitespace-nowrap">{new Date(a.created_at).toLocaleDateString("id-ID")}</span>
+                      </div>
+                      <p className="text-slate-400 text-sm whitespace-pre-wrap">{a.content}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
