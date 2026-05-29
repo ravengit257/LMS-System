@@ -18,6 +18,7 @@ export default function AdminDashboard({ user, onLogout }: any) {
   const [users, setUsers] = useState<User[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [activeTab, setActiveTab] = useState("users");
+  const [message, setMessage] = useState("");
   const token = localStorage.getItem("token");
 
   const fetchUsers = async () => {
@@ -46,6 +47,19 @@ export default function AdminDashboard({ user, onLogout }: any) {
     fetchUsers();
     fetchCourses();
   }, []);
+
+  const handleDeleteUser = async (user_id: number, username: string) => {
+    if(!confirm(`Yakin ingin menghapus user "${username}"?`)) return;
+    try{
+      await axios.delete(`http://localhost:5000/users/${user_id}`, {
+        headers: {Authorization: `Bearer ${token}`},
+      });
+      setMessage(`User "${username}" berhasil dihapus`);
+      fetchUsers();
+    }catch(err: any){
+      setMessage(err.response?.data?.error || "Gagal menghapus user");
+    }
+  }
 
   const tabs = [
     { key: "users", label: "Semua User" },
@@ -83,6 +97,16 @@ export default function AdminDashboard({ user, onLogout }: any) {
       </nav>
 
       <div className="max-w-5xl mx-auto px-6 py-8">
+        {message && (
+          <div className="mb-6 p-4 rounded-xl text-sm font-medium border bg-green-500/10 border-green-500/30 text-green-400">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {message}
+            </div>
+          </div>
+        )}
         <div className="flex gap-2 mb-8">
           {tabs.map((tab) => (
             <button
@@ -114,6 +138,7 @@ export default function AdminDashboard({ user, onLogout }: any) {
                       <th className="text-left px-6 py-3 text-slate-400 text-sm font-medium">ID</th>
                       <th className="text-left px-6 py-3 text-slate-400 text-sm font-medium">Username</th>
                       <th className="text-left px-6 py-3 text-slate-400 text-sm font-medium">Role</th>
+                      <th className="text-right px-6 py-3 text-slate-400 text-sm font-medium">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-700/50">
@@ -125,6 +150,14 @@ export default function AdminDashboard({ user, onLogout }: any) {
                           <span className={`inline-block px-3 py-1 rounded-lg text-xs font-medium border ${roleColors[u.role] || "bg-slate-500/10 text-slate-400 border-slate-500/30"}`}>
                             {u.role}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button
+                            onClick={() => handleDeleteUser(u.user_id, u.username)}
+                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1 rounded-lg text-xs font-medium transition cursor-pointer"
+                          >
+                            Hapus
+                          </button>
                         </td>
                       </tr>
                     ))}

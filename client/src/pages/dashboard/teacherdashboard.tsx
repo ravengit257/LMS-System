@@ -31,6 +31,9 @@ export default function TeacherDashboard({ user, onLogout }: any) {
   const [grades, setGrades] = useState<GradeView[]>([]);
   const [gradeInputs, setGradeInputs] = useState<Record<number, string>>({});
 
+  const [expandedCourse, setExpandedCourse] = useState<number | null>(null);
+  const [courseStudents, setCourseStudents] = useState<Record<number, Student[]>>({});
+
   const [announceTitle, setAnnounceTitle] = useState("");
   const [announceContent, setAnnounceContent] = useState("");
   const [announceCourse, setAnnounceCourse] = useState("");
@@ -121,6 +124,22 @@ export default function TeacherDashboard({ user, onLogout }: any) {
       fetchGrades(selectedCourse);
     }catch(err: any){
       setMessage(err.response?.data?.error || "Gagal input nilai");
+    }
+  }
+
+  const toggleStudents = async (course_id: number) => {
+    if(expandedCourse === course_id){
+      setExpandedCourse(null);
+      return;
+    }
+    setExpandedCourse(course_id);
+    try{
+      const response = await axios.get(`http://localhost:5000/enrolled-students/${course_id}`, {
+        headers: {Authorization: `Bearer ${token}`},
+      });
+      setCourseStudents({...courseStudents, [course_id]: response.data});
+    }catch(err){
+      console.error(err);
     }
   }
 
@@ -428,13 +447,40 @@ export default function TeacherDashboard({ user, onLogout }: any) {
                         <h3 className="text-lg font-semibold text-white mb-2">{course.title}</h3>
                         <p className="text-slate-400 text-sm">{course.description}</p>
                       </div>
-                      <button
-                        onClick={() => handleDeleteCourse(course.course_id)}
-                        className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer"
-                      >
-                        Hapus
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => toggleStudents(course.course_id)}
+                          className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer"
+                        >
+                          {expandedCourse === course.course_id ? "Tutup" : "Student"}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCourse(course.course_id)}
+                          className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer"
+                        >
+                          Hapus
+                        </button>
+                      </div>
                     </div>
+                    {expandedCourse === course.course_id && (
+                      <div className="mt-4 pt-4 border-t border-slate-700/50">
+                        <p className="text-slate-400 text-xs font-medium mb-2">Daftar Student:</p>
+                        {courseStudents[course.course_id]?.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {courseStudents[course.course_id].map((s) => (
+                              <span key={s.user_id} className="inline-flex items-center gap-1.5 bg-slate-900/50 text-slate-300 border border-slate-600/50 px-3 py-1 rounded-lg text-xs">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                {s.username}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-slate-500 text-xs">Belum ada student terdaftar</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
