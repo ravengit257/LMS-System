@@ -128,6 +128,19 @@ export default function TeacherDashboard({ user, onLogout }: any) {
     fetchMyCourses();
   }, []);
 
+  const handleDeleteCourse = async (course_id: number) => {
+    if(!confirm("Yakin ingin menghapus course ini?")) return;
+    try{
+      await axios.delete(`http://localhost:5000/courses/${course_id}`, {
+        headers: {Authorization: `Bearer ${token}`},
+      });
+      setMessage("Course berhasil dihapus");
+      fetchMyCourses();
+    }catch(err: any){
+      setMessage(err.response?.data?.error || "Gagal menghapus course");
+    }
+  }
+
   const fetchAnnouncements = async (course_id: string) => {
     try{
       const response = await axios.get(`http://localhost:5000/announcements/${course_id}`, {
@@ -410,8 +423,18 @@ export default function TeacherDashboard({ user, onLogout }: any) {
                     key={course.course_id}
                     className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-6 hover:border-slate-600/50 transition"
                   >
-                    <h3 className="text-lg font-semibold text-white mb-2">{course.title}</h3>
-                    <p className="text-slate-400 text-sm">{course.description}</p>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-white mb-2">{course.title}</h3>
+                        <p className="text-slate-400 text-sm">{course.description}</p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteCourse(course.course_id)}
+                        className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer"
+                      >
+                        Hapus
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

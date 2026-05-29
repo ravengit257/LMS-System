@@ -381,6 +381,27 @@ app.get('/enrolled-students/:course_id', async (req, res) => {
   }
 })
 
+app.delete('/courses/:id', async (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  try{
+    const decoded: any = jwt.verify(token!, process.env.JWTSECRET as string);
+    if(decoded.role != "teacher"){
+      res.status(403).json({ error: "Access Denied" });
+      return
+    }
+    const course = await pool.query(`SELECT teacher_id FROM courses WHERE course_id = $1`, [req.params.id]);
+    if(course.rows.length === 0 || course.rows[0].teacher_id !== decoded.user_id){
+      res.status(403).json({ error: "Bukan course anda" });
+      return
+    }
+    await pool.query(`DELETE FROM courses WHERE course_id = $1`, [req.params.id]);
+    res.json({message: "Course berhasil dihapus"})
+  }catch(err){
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+})
+
 app.post('/announcements', async (req, res) => {
   const {course_id, title, content} = req.body
   const token = req.headers.authorization?.split(" ")[1];
