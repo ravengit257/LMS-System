@@ -40,6 +40,10 @@ export default function TeacherDashboard({ user, onLogout }: any) {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [editCourse, setEditCourse] = useState<Course | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+
   const token = localStorage.getItem("token");
 
   const fetchMyCourses = async () => {
@@ -158,6 +162,27 @@ export default function TeacherDashboard({ user, onLogout }: any) {
       fetchMyCourses();
     }catch(err: any){
       setMessage(err.response?.data?.error || "Gagal menghapus course");
+    }
+  }
+
+  const handleEditClick = (course: Course) => {
+    setEditCourse(course);
+    setEditTitle(course.title);
+    setEditDesc(course.description);
+  }
+
+  const handleUpdateCourse = async () => {
+    if(!editTitle || !editDesc || !editCourse) return;
+    try{
+      await axios.put(`http://localhost:5000/courses/${editCourse.course_id}`,
+        {title: editTitle, description: editDesc},
+        {headers: {Authorization: `Bearer ${token}`}},
+      );
+      setMessage("Course berhasil diupdate");
+      setEditCourse(null);
+      fetchMyCourses();
+    }catch(err: any){
+      setMessage(err.response?.data?.error || "Gagal update course");
     }
   }
 
@@ -454,46 +479,84 @@ export default function TeacherDashboard({ user, onLogout }: any) {
                     key={course.course_id}
                     className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-6 hover:border-slate-600/50 transition"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-white mb-2">{course.title}</h3>
-                        <p className="text-slate-400 text-sm">{course.description}</p>
+                    {editCourse?.course_id === course.course_id ? (
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-white">Edit Course</h3>
+                        <div>
+                          <label className="block text-slate-300 text-sm font-medium mb-1.5">Judul</label>
+                          <input
+                            type="text"
+                            value={editTitle}
+                            onChange={(e) => setEditTitle(e.target.value)}
+                            className="w-full bg-slate-900/50 border border-slate-600/50 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-slate-300 text-sm font-medium mb-1.5">Deskripsi</label>
+                          <textarea
+                            value={editDesc}
+                            onChange={(e) => setEditDesc(e.target.value)}
+                            rows={3}
+                            className="w-full bg-slate-900/50 border border-slate-600/50 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition resize-none"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={handleUpdateCourse} className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white px-5 py-2 rounded-lg text-sm font-medium transition cursor-pointer shadow-lg shadow-blue-500/20">
+                            Simpan
+                          </button>
+                          <button onClick={() => setEditCourse(null)} className="bg-slate-700/50 hover:bg-slate-700/70 text-slate-300 px-5 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
+                            Batal
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => toggleStudents(course.course_id)}
-                          className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer"
-                        >
-                          {expandedCourse === course.course_id ? "Tutup" : "Student"}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCourse(course.course_id)}
-                          className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer"
-                        >
-                          Hapus
-                        </button>
+                    ) : (<>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-semibold text-white mb-2">{course.title}</h3>
+                          <p className="text-slate-400 text-sm">{course.description}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleEditClick(course)}
+                            className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => toggleStudents(course.course_id)}
+                            className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/30 px-3 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer"
+                          >
+                            {expandedCourse === course.course_id ? "Tutup" : "Student"}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCourse(course.course_id)}
+                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1.5 rounded-lg text-sm font-medium transition cursor-pointer"
+                          >
+                            Hapus
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    {expandedCourse === course.course_id && (
-                      <div className="mt-4 pt-4 border-t border-slate-700/50">
-                        <p className="text-slate-400 text-xs font-medium mb-2">Daftar Student:</p>
-                        {courseStudents[course.course_id]?.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {courseStudents[course.course_id].map((s) => (
-                              <span key={s.user_id} className="inline-flex items-center gap-1.5 bg-slate-900/50 text-slate-300 border border-slate-600/50 px-3 py-1 rounded-lg text-xs">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
-                                {s.username}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-slate-500 text-xs">Belum ada student terdaftar</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                      {expandedCourse === course.course_id && (
+                        <div className="mt-4 pt-4 border-t border-slate-700/50">
+                          <p className="text-slate-400 text-xs font-medium mb-2">Daftar Student:</p>
+                          {courseStudents[course.course_id]?.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {courseStudents[course.course_id].map((s) => (
+                                <span key={s.user_id} className="inline-flex items-center gap-1.5 bg-slate-900/50 text-slate-300 border border-slate-600/50 px-3 py-1 rounded-lg text-xs">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                  </svg>
+                                  {s.username}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-slate-500 text-xs">Belum ada student terdaftar</p>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
                 ))}
               </div>
             )}
