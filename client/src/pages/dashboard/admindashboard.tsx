@@ -19,6 +19,7 @@ export default function AdminDashboard({ user, onLogout }: any) {
   const [courses, setCourses] = useState<Course[]>([]);
   const [activeTab, setActiveTab] = useState("users");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(true);
   const token = localStorage.getItem("token");
 
   const fetchUsers = async () => {
@@ -44,8 +45,10 @@ export default function AdminDashboard({ user, onLogout }: any) {
   };
 
   useEffect(() => {
-    fetchUsers();
-    fetchCourses();
+    Promise.all([
+      fetchUsers(),
+      fetchCourses(),
+    ]).finally(() => setLoading(false));
   }, []);
 
   const handleDeleteUser = async (user_id: number, username: string) => {
@@ -97,6 +100,17 @@ export default function AdminDashboard({ user, onLogout }: any) {
       </nav>
 
       <div className="max-w-5xl mx-auto px-6 py-8">
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-3">
+              <svg className="animate-spin h-8 w-8 text-blue-400" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              <p className="text-slate-400 text-sm">Memuat data...</p>
+            </div>
+          </div>
+        ) : (<>
         {message && (
           <div className="mb-6 p-4 rounded-xl text-sm font-medium border bg-green-500/10 border-green-500/30 text-green-400">
             <div className="flex items-center gap-2">
@@ -196,7 +210,7 @@ export default function AdminDashboard({ user, onLogout }: any) {
             )}
           </div>
         )}
-      </div>
+      </></div>
     </div>
   );
 }

@@ -38,6 +38,7 @@ export default function TeacherDashboard({ user, onLogout }: any) {
   const [announceContent, setAnnounceContent] = useState("");
   const [announceCourse, setAnnounceCourse] = useState("");
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const token = localStorage.getItem("token");
 
@@ -144,7 +145,7 @@ export default function TeacherDashboard({ user, onLogout }: any) {
   }
 
   useEffect(() => {
-    fetchMyCourses();
+    fetchMyCourses().finally(() => setLoading(false));
   }, []);
 
   const handleDeleteCourse = async (course_id: number) => {
@@ -222,6 +223,17 @@ export default function TeacherDashboard({ user, onLogout }: any) {
       </nav>
 
       <div className="max-w-5xl mx-auto px-6 py-8">
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-3">
+              <svg className="animate-spin h-8 w-8 text-blue-400" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              <p className="text-slate-400 text-sm">Memuat data...</p>
+            </div>
+          </div>
+        ) : (<>
         {message && (
           <div className={`mb-6 p-4 rounded-xl text-sm font-medium border ${
             message === "Course berhasil dibuat" || message.startsWith("Nilai")
@@ -487,7 +499,7 @@ export default function TeacherDashboard({ user, onLogout }: any) {
             )}
           </div>
         )}
-      </div>
+      </></div>
     </div>
   );
 }
